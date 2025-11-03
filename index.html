@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,16 +12,19 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
             width: 20px;
             height: 20px;
-            background: #2563eb; /* blue-600 */
+            background: #2563eb;
+            /* blue-600 */
             border-radius: 50%;
             cursor: pointer;
             margin-top: -6px;
         }
+
         input[type="range"]::-moz-range-thumb {
             width: 20px;
             height: 20px;
@@ -28,6 +32,7 @@
             border-radius: 50%;
             cursor: pointer;
         }
+
         #previewCanvas {
             -webkit-touch-callout: none;
             user-select: none;
@@ -38,14 +43,15 @@
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-8KYEBVC6J4"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
 
-      gtag('config', 'G-8KYEBVC6J4', { 'anonymize_ip': true });
+        gtag('config', 'G-8KYEBVC6J4', { 'anonymize_ip': true });
     </script>
 
 </head>
+
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
     <div class="container mx-auto max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col my-4">
@@ -56,7 +62,9 @@
 
             <!-- Preview -->
             <div class="w-full bg-gray-200 flex justify-center items-center p-4 min-h-[300px] rounded-lg">
-                <canvas id="previewCanvas" class="max-w-full max-h-[50vh] object-contain rounded-lg shadow-inner bg-gray-300" style="display: none;"></canvas>
+                <canvas id="previewCanvas"
+                    class="max-w-full max-h-[50vh] object-contain rounded-lg shadow-inner bg-gray-300"
+                    style="display: none;"></canvas>
             </div>
 
 
@@ -68,26 +76,30 @@
                     file:text-sm file:font-semibold
                     file:bg-blue-50 file:text-blue-700
                     hover:file:bg-blue-100
-                "/>
+                " />
             </div>
 
             <div>
                 <label for="watermarkText" class="block text-sm font-medium text-gray-700 mb-2">2. 透かし文字</label>
-                <input type="text" id="watermarkText" value="@k1832_" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <input type="text" id="watermarkText" value="@k1832_"
+                    class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
             </div>
 
             <div>
                 <label for="watermarkColor" class="block text-sm font-medium text-gray-700 mb-2">3. 文字色</label>
                 <div class="flex items-center space-x-2">
-                    <input type="color" id="watermarkColor" value="#FFFFFF" class="w-12 h-10 p-1 border border-gray-300 rounded-lg cursor-pointer">
-                    <input type="text" id="colorHexValue" value="#FFFFFF" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <input type="color" id="watermarkColor" value="#FFFFFF"
+                        class="w-12 h-10 p-1 border border-gray-300 rounded-lg cursor-pointer">
+                    <input type="text" id="colorHexValue" value="#FFFFFF"
+                        class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 </div>
             </div>
 
             <div>
                 <label for="watermarkOpacity" class="block text-sm font-medium text-gray-700 mb-2">4. 不透明度</label>
                 <div class="flex items-center space-x-3">
-                    <input type="range" id="watermarkOpacity" min="0" max="1" step="0.01" value="0.5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <input type="range" id="watermarkOpacity" min="0" max="1" step="0.01" value="0.5"
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                     <span id="opacityValue" class="font-medium text-gray-700 text-sm w-12 text-right">50%</span>
                 </div>
             </div>
@@ -95,7 +107,8 @@
             <div>
                 <label for="fontSize" class="block text-sm font-medium text-gray-700 mb-2">5. 文字サイズ（出力時）</label>
                 <div class="flex items-center space-x-3">
-                    <input type="range" id="fontSize" min="8" max="256" step="1" value="64" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <input type="range" id="fontSize" min="8" max="256" step="1" value="64"
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                     <span id="fontSizeValue" class="font-medium text-gray-700 text-sm w-12 text-right">64px</span>
                 </div>
             </div>
@@ -103,14 +116,18 @@
             <div>
                 <label for="watermarkSpacing" class="block text-sm font-medium text-gray-700 mb-2">6. 間隔 (密度)</label>
                 <div class="flex items-center space-x-3">
-                    <input type="range" id="watermarkSpacing" min="1" max="10" step="0.5" value="4" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <input type="range" id="watermarkSpacing" min="1" max="10" step="0.5" value="4"
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                     <span id="spacingValue" class="font-medium text-gray-700 text-sm w-12 text-right">4.0</span>
                 </div>
             </div>
 
             <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-lg flex items-start">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-500 mr-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-500 mr-3 shrink-0" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                    </path>
                 </svg>
                 <div>
                     <p class="font-bold">処理はすべてデバイス上で完結</p>
@@ -119,14 +136,18 @@
             </div>
 
             <div>
-                <button id="actionButton" class="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+                <button id="actionButton"
+                    class="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
                     画像をダウンロード
                 </button>
             </div>
 
-            <div id="iosSaveMessage" class="hidden bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 rounded-lg items-start">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500 mr-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div id="iosSaveMessage"
+                class="hidden bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 rounded-lg items-start">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500 mr-3 shrink-0" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
                     <p class="text-sm font-bold">保存方法</p>
@@ -137,9 +158,13 @@
         </div>
 
         <div class="w-full bg-white p-4 border-t border-gray-100">
-            <a href="https://x.com/k1832_" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="w-4 h-4 mr-2" viewBox="0 0 16 16">
-                  <path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865l8.875 11.633Z"></path>
+            <a href="https://x.com/k1832_" target="_blank" rel="noopener noreferrer"
+                class="flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="w-4 h-4 mr-2"
+                    viewBox="0 0 16 16">
+                    <path
+                        d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865l8.875 11.633Z">
+                    </path>
                 </svg>
                 <span class="text-sm font-medium">Created by @k1832_</span>
             </a>
@@ -344,13 +369,13 @@
                     const dataUrl = outputCanvas.toDataURL('image/png');
 
                     if (!dataUrl || dataUrl === 'data:,') {
-                         alert('画像の生成に失敗しました。');
-                         return;
+                        alert('画像の生成に失敗しました。');
+                        return;
                     }
 
                     // Open a blank window first
                     const newWindow = window.open('', '_blank');
-                    if (!newWindow || newWindow.closed || typeof newWindow.closed=='undefined') {
+                    if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
                         alert('ポップアップがブロックされました。設定でこのサイトのポップアップを許可してください。');
                         return;
                     }
@@ -364,7 +389,7 @@
 
                 } else {
                     // Non-iOS: Use Blob for direct download
-                    outputCanvas.toBlob(function(blob) {
+                    outputCanvas.toBlob(function (blob) {
                         if (!blob) {
                             alert('画像の生成に失敗しました。');
                             return;
@@ -473,4 +498,5 @@
 
     </script>
 </body>
+
 </html>
