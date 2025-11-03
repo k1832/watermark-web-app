@@ -28,6 +28,11 @@
             border-radius: 50%;
             cursor: pointer;
         }
+        #previewCanvas {
+            -webkit-touch-callout: none;
+            user-select: none;
+            touch-action: manipulation;
+        }
     </style>
 
     <!-- Google tag (gtag.js) -->
@@ -88,10 +93,10 @@
             </div>
 
             <div>
-                <label for="fontSize" class="block text-sm font-medium text-gray-700 mb-2">5. 文字サイズ</label>
+                <label for="fontSize" class="block text-sm font-medium text-gray-700 mb-2">5. 文字サイズ（出力時）</label>
                 <div class="flex items-center space-x-3">
-                    <input type="range" id="fontSize" min="8" max="128" step="1" value="32" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                    <span id="fontSizeValue" class="font-medium text-gray-700 text-sm w-12 text-right">32px</span>
+                    <input type="range" id="fontSize" min="8" max="256" step="1" value="64" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <span id="fontSizeValue" class="font-medium text-gray-700 text-sm w-12 text-right">64px</span>
                 </div>
             </div>
 
@@ -114,10 +119,21 @@
             </div>
 
             <div>
-                <button id="downloadButton" class="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+                <button id="actionButton" class="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
                     画像をダウンロード
                 </button>
             </div>
+
+            <div id="iosSaveMessage" class="hidden bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 rounded-lg items-start">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500 mr-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                    <p class="text-sm font-bold">保存方法</p>
+                    <p class="text-sm">ボタンを押すと新しいタブで画像が開きます。画像を長押しして「"写真"に保存」を選択してください。</p>
+                </div>
+            </div>
+
         </div>
 
         <div class="w-full bg-white p-4 border-t border-gray-100">
@@ -142,51 +158,124 @@
         const fontSizeValue = document.getElementById('fontSizeValue');
         const watermarkSpacing = document.getElementById('watermarkSpacing');
         const spacingValue = document.getElementById('spacingValue');
-        const downloadButton = document.getElementById('downloadButton');
-        const canvas = document.getElementById('previewCanvas');
-        const ctx = canvas.getContext('2d');
+        const actionButton = document.getElementById('actionButton');
+        const iosSaveMessage = document.getElementById('iosSaveMessage');
 
-        /**
-         * Helper function to send Google Analytics events
-         * @param {string} eventName - The name of the event (e.g., 'image_upload')
-         * @param {object} [eventParams] - Optional parameters for the event
-         */
+        // 1. Preview Canvas (low-res, fast preview)
+        const previewCanvas = document.getElementById('previewCanvas');
+        const pCtx = previewCanvas.getContext('2d');
+
+        // 2. Output Canvas (hidden, high-res export)
+        const outputCanvas = document.createElement('canvas');
+        const oCtx = outputCanvas.getContext('2d');
+
+        // 3. Pattern Canvas (hidden, for optimization)
+        const patternCanvas = document.createElement('canvas');
+        const patternCtx = patternCanvas.getContext('2d');
+
+        // Max preview resolution for performance
+        const MAX_PREVIEW_DIMENSION = 1000;
+
         function trackEvent(eventName, eventParams = {}) {
             if (typeof gtag === 'function') {
                 gtag('event', eventName, eventParams);
-            } else {
-                console.log(`GA Event (gtag not found): ${eventName}`, eventParams);
             }
         }
 
+        function checkIsIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.platform) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1 && !window.MSStream);
+        }
+        const isIOS = checkIsIOS();
+
         // State Management
         let originalImage = new Image();
+        let previewScale = 1.0; // Preview scale vs original
+
         let currentWatermark = {
             text: '@k1832_',
             color: '#FFFFFF',
             opacity: 0.5,
-            fontSize: 32,
+            fontSize: 64,
             spacing: 4
         };
 
-        // Initial Setup (Disable download button)
-        downloadButton.disabled = true;
+        let updatePending = false;
+        let animationFrameId = null;
+
+        /**
+         * Request a redraw (optimized with requestAnimationFrame)
+         */
+        function requestRedraw() {
+            if (!updatePending) {
+                updatePending = true;
+                animationFrameId = requestAnimationFrame(() => {
+                    drawWatermark(previewCanvas, pCtx, previewScale);
+                    updatePending = false;
+                    animationFrameId = null;
+                });
+            }
+        }
+
+        function cancelPendingRedraw() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                updatePending = false;
+                animationFrameId = null;
+            }
+        }
+
+        // Initial Setup
+        actionButton.disabled = true;
+        fontSizeValue.textContent = `${currentWatermark.fontSize}px`;
+
+        if (isIOS) {
+            actionButton.textContent = '保存用に画像を開く';
+            if (iosSaveMessage) {
+                iosSaveMessage.classList.remove('hidden');
+                iosSaveMessage.classList.add('flex');
+            }
+            trackEvent('ios_detected', {});
+        }
+
+        // --- Event Listeners ---
 
         imageLoader.addEventListener('change', e => {
             const file = e.target.files[0];
             if (!file) return;
 
+            cancelPendingRedraw();
+            actionButton.disabled = true;
+
             const reader = new FileReader();
             reader.onload = event => {
-
                 originalImage.onload = () => {
-                    canvas.width = originalImage.width;
-                    canvas.height = originalImage.height;
-                    redrawCanvas();
-                    canvas.style.display = 'block';
-                    downloadButton.disabled = false;
+                    const width = originalImage.width;
+                    const height = originalImage.height;
 
-                    trackEvent('image_upload', {});
+                    // 1. Setup output canvas (full-res)
+                    outputCanvas.width = width;
+                    outputCanvas.height = height;
+
+                    // 2. Setup preview canvas (scaled down)
+                    const maxDim = Math.max(width, height);
+                    if (maxDim > MAX_PREVIEW_DIMENSION) {
+                        previewScale = MAX_PREVIEW_DIMENSION / maxDim;
+                    } else {
+                        previewScale = 1.0;
+                    }
+                    previewCanvas.width = width * previewScale;
+                    previewCanvas.height = height * previewScale;
+
+                    requestRedraw();
+
+                    previewCanvas.style.display = 'block';
+                    actionButton.disabled = false; // Enable button
+                    trackEvent('image_upload', { resolution: `${width}x${height}` });
+                }
+                originalImage.onerror = () => {
+                    alert("画像の読み込みに失敗しました。");
+                    actionButton.disabled = true;
                 }
                 originalImage.src = event.target.result;
             }
@@ -195,85 +284,117 @@
 
         watermarkText.addEventListener('input', e => {
             currentWatermark.text = e.target.value;
-            redrawCanvas();
+            requestRedraw();
         });
 
         watermarkColor.addEventListener('input', e => {
             currentWatermark.color = e.target.value;
-            colorHexValue.value = e.target.value; // Update hex text input as well
-            redrawCanvas();
+            colorHexValue.value = e.target.value.toUpperCase(); // Update hex text input as well
+            requestRedraw();
         });
 
         colorHexValue.addEventListener('input', e => {
-            currentWatermark.color = e.target.value;
-            watermarkColor.value = e.target.value; // Update color picker as well
-            redrawCanvas();
+            const value = e.target.value.toUpperCase();
+            // Validate for 3 or 6 digit HEX code
+            if (/^#([0-9A-F]{3}){1,2}$/i.test(value)) {
+                currentWatermark.color = value;
+
+                // Since input type="color" only accepts 6-digit HEX codes, normalize if 3 digits are provided
+                let normalizedColor = value;
+                if (value.length === 4) {
+                    // #RGB -> #RRGGBB
+                    normalizedColor = '#' + value[1] + value[1] + value[2] + value[2] + value[3] + value[3];
+                }
+                watermarkColor.value = normalizedColor.toLowerCase(); // Update color picker as well
+                requestRedraw();
+            }
         });
 
         watermarkOpacity.addEventListener('input', e => {
             currentWatermark.opacity = parseFloat(e.target.value);
             opacityValue.textContent = `${Math.round(currentWatermark.opacity * 100)}%`;
-            redrawCanvas();
+            requestRedraw();
         });
 
         fontSize.addEventListener('input', e => {
             currentWatermark.fontSize = parseInt(e.target.value, 10);
             fontSizeValue.textContent = `${currentWatermark.fontSize}px`;
-            redrawCanvas();
+            requestRedraw();
         });
 
         watermarkSpacing.addEventListener('input', e => {
             currentWatermark.spacing = parseFloat(e.target.value);
             spacingValue.textContent = currentWatermark.spacing.toFixed(1);
-            redrawCanvas();
+            requestRedraw();
         });
 
-        downloadButton.addEventListener('click', () => {
-            redrawCanvas();
+        actionButton.addEventListener('click', () => {
+            // 1. Cancel pending preview
+            cancelPendingRedraw();
 
-            trackEvent('image_download', {});
+            // 2. Draw on hi-res output canvas (Scale 1.0)
+            drawWatermark(outputCanvas, oCtx, 1.0);
 
+            trackEvent('image_action_click', { is_ios: isIOS });
+
+            // 3. Generate image and save/display
             try {
-                canvas.toBlob(function(blob) {
-                    if (!blob) {
-                        console.error('Canvas toBlob failed');
+                if (isIOS) {
+                    // iOS: Use Data URL
+                    const dataUrl = outputCanvas.toDataURL('image/png');
+
+                    if (!dataUrl || dataUrl === 'data:,') {
+                         alert('画像の生成に失敗しました。');
+                         return;
+                    }
+
+                    // Open a blank window first
+                    const newWindow = window.open('', '_blank');
+                    if (!newWindow || newWindow.closed || typeof newWindow.closed=='undefined') {
+                        alert('ポップアップがブロックされました。設定でこのサイトのポップアップを許可してください。');
                         return;
                     }
-                    const url = URL.createObjectURL(blob);
 
-                    const link = document.createElement('a');
-                    link.download = 'watermarked-image.png';
-                    link.href = url;
+                    // Write HTML with the image into the new window
+                    // This is more robust than opening the Data URL directly
+                    newWindow.document.write('<!DOCTYPE html><head><title>画像プレビュー</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0; background:#222; display:flex; align-items:center; justify-content:center; min-height:100vh;">');
+                    newWindow.document.write('<img src="' + dataUrl + '" style="max-width:100%; max-height:100vh; object-fit:contain;" alt="保存する画像">');
+                    newWindow.document.write('</body></html>');
+                    newWindow.document.close(); // Finish writing
 
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+                } else {
+                    // Non-iOS: Use Blob for direct download
+                    outputCanvas.toBlob(function(blob) {
+                        if (!blob) {
+                            alert('画像の生成に失敗しました。');
+                            return;
+                        }
+                        const url = URL.createObjectURL(blob);
 
-                    URL.revokeObjectURL(url);
+                        const link = document.createElement('a');
+                        link.download = 'watermarked-image.png';
+                        link.href = url;
+                        link.click();
+                        URL.revokeObjectURL(url);
 
-                }, 'image/png');
+                    }, 'image/png');
+                }
             } catch (e) {
-                console.error('Download failed:', e);
+                console.error('Download/Save failed:', e);
+                alert('画像の処理に失敗しました。');
             }
         });
 
+        // --- Helper Functions ---
 
-        /**
-         * Convert hex color to rgba string
-         * @param {string} hex - #RRGGBB format
-         * @param {number} opacity - 0.0 ~ 1.0
-         * @returns {string} - "rgba(r, g, b, opacity)" format
-         */
         function hexToRgba(hex, opacity) {
             let r = 0, g = 0, b = 0;
-            // 3 digits (#RGB)
+            if (typeof hex !== 'string' || !hex.startsWith('#')) return `rgba(255, 255, 255, ${opacity})`;
             if (hex.length === 4) {
                 r = parseInt(hex[1] + hex[1], 16);
                 g = parseInt(hex[2] + hex[2], 16);
                 b = parseInt(hex[3] + hex[3], 16);
-            }
-            // 6 digits (#RRGGBB)
-            else if (hex.length === 7) {
+            } else if (hex.length === 7) {
                 r = parseInt(hex[1] + hex[2], 16);
                 g = parseInt(hex[3] + hex[4], 16);
                 b = parseInt(hex[5] + hex[6], 16);
@@ -281,11 +402,18 @@
             return `rgba(${r}, ${g}, ${b}, ${opacity})`;
         }
 
-        function redrawCanvas() {
+        /**
+         * Main draw function (using pattern optimization)
+         * @param {HTMLCanvasElement} canvas - Target canvas
+         * @param {CanvasRenderingContext2D} ctx - Target context
+         * @param {number} scale - Draw scale (1.0 = full res)
+         */
+        function drawWatermark(canvas, ctx, scale) {
             if (!originalImage.src || !originalImage.complete) {
                 return;
             }
 
+            // 1. Draw background image
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
 
@@ -293,31 +421,54 @@
                 return;
             }
 
-            ctx.save(); // Save the current state
-            ctx.font = `bold ${currentWatermark.fontSize}px Inter`;
-            ctx.fillStyle = hexToRgba(currentWatermark.color, currentWatermark.opacity);
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
+            // --- Pattern Optimization ---
 
+            // Adjust font size for scale
+            const scaledFontSize = currentWatermark.fontSize * scale;
+            const fontSetting = `bold ${scaledFontSize}px Inter`;
+
+            patternCtx.font = fontSetting;
+
+            // Measure text
+            const textMetrics = patternCtx.measureText(currentWatermark.text);
+            const textWidth = textMetrics.width;
+
+            // Calculate pattern size/spacing
+            const spacingFactor = currentWatermark.spacing;
+            const stepX = textWidth + scaledFontSize * spacingFactor;
+            const stepY = scaledFontSize * spacingFactor * 0.75;
+
+            if (stepX <= 1 || stepY <= 1) return;
+
+            // Set pattern canvas size
+            patternCanvas.width = stepX;
+            patternCanvas.height = stepY;
+
+            // Reset pattern context settings after resize
+            patternCtx.font = fontSetting;
+            patternCtx.fillStyle = hexToRgba(currentWatermark.color, currentWatermark.opacity);
+            patternCtx.textBaseline = 'middle';
+            patternCtx.textAlign = 'left';
+
+            // Draw text onto pattern canvas
+            patternCtx.fillText(currentWatermark.text, 0, stepY / 2);
+
+            // --- Draw Pattern to Main Canvas ---
+            ctx.save();
+
+            // Create pattern and set as fill style
+            const pattern = ctx.createPattern(patternCanvas, 'repeat');
+            ctx.fillStyle = pattern;
+
+            // Rotate context
             const angleInDegrees = -30;
             ctx.rotate(angleInDegrees * Math.PI / 180);
 
-            const textMetrics = ctx.measureText(currentWatermark.text);
-            const textWidth = textMetrics.width;
-
-            const spacingFactor = currentWatermark.spacing;
-            const stepX = textWidth + currentWatermark.fontSize * spacingFactor;
-            const stepY = currentWatermark.fontSize * spacingFactor * 0.75; // 0.75 is an approximate line height factor
-
+            // Fill rotated area with pattern
             const diagonal = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height);
+            ctx.fillRect(-diagonal * 1.5, -diagonal * 1.5, diagonal * 3, diagonal * 3);
 
-            for (let x = -diagonal; x < diagonal * 2; x += stepX) {
-                for (let y = -diagonal; y < diagonal * 2; y += stepY) {
-                    ctx.fillText(currentWatermark.text, x, y);
-                }
-            }
-
-            ctx.restore(); // Restore the original state
+            ctx.restore();
         }
 
     </script>
