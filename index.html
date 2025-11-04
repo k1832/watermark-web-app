@@ -52,16 +52,7 @@
             touch-action: manipulation;
         }
     </style>
-
-    <!-- Google tag (gtag.js) -->
-    <script defer src="https://www.googletagmanager.com/gtag/js?id=G-8KYEBVC6J4"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
-
-        gtag('config', 'G-8KYEBVC6J4', { 'anonymize_ip': true });
-    </script>
+    <!-- Use Cloudflare Zaraz for analytics -->
 
 </head>
 
@@ -215,12 +206,6 @@
         // Max preview resolution for performance
         const MAX_PREVIEW_DIMENSION = 1000;
 
-        function trackEvent(eventName, eventParams = {}) {
-            if (typeof gtag === 'function') {
-                gtag('event', eventName, eventParams);
-            }
-        }
-
         function checkIsIOS() {
             return /iPad|iPhone|iPod/.test(navigator.platform) ||
                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1 && !window.MSStream);
@@ -274,11 +259,9 @@
                 iosSaveMessage.classList.remove('hidden');
                 iosSaveMessage.classList.add('flex');
             }
-            trackEvent('ios_detected', {});
         }
 
         // --- Event Listeners ---
-
         imageLoader.addEventListener('change', e => {
             const file = e.target.files[0];
             if (!file) return;
@@ -309,8 +292,13 @@
                     requestRedraw();
 
                     previewCanvas.style.display = 'block';
-                    actionButton.disabled = false; // Enable button
-                    trackEvent('image_upload', { resolution: `${width}x${height}` });
+                    actionButton.disabled = false;
+
+                    // Track image upload event
+                    // ** It does not collect image data or any personal info **
+                    if (typeof zaraz !== 'undefined') {
+                        zaraz.track('image_upload');
+                    }
                 }
                 originalImage.onerror = () => {
                     alert("画像の読み込みに失敗しました。");
@@ -373,8 +361,6 @@
 
             // 2. Draw on hi-res output canvas (Scale 1.0)
             drawWatermark(outputCanvas, oCtx, 1.0);
-
-            trackEvent('image_action_click', { is_ios: isIOS });
 
             // 3. Generate image and save/display
             try {
