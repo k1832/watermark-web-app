@@ -1,0 +1,27 @@
+{
+  "name": "watermark-web-app",
+  "version": "1.0.0",
+  "description": "Hosted with [Cloudflare Pages](https://www.cloudflare.com/ja-jp/developer-platform/products/pages/)",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx tailwindcss -o ./style.css --minify"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/k1832/watermark-web-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/k1832/watermark-web-app/issues"
+  },
+  "homepage": "https://github.com/k1832/watermark-web-app#readme",
+  "devDependencies": {
+    "tailwindcss": "^4.1.16",
+    "@tailwindcss/cli": "^4.1.16"
+  },
+  "dependencies": {
+  }
+}
